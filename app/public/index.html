@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <base href="__BASE_HREF__">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PiBench · TinyServerLab</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%2322d3a6'/%3E%3Ctext x='16' y='23' font-size='20' text-anchor='middle' font-family='Georgia' fill='%230b0f14'%3E%CF%80%3C/text%3E%3C/svg%3E">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <div class="mark">π</div>
+      <div>
+        <div class="name">PiBench</div>
+        <div class="sub" id="subtitle">TinyServerLab · Raspberry Pi storage benchmark</div>
+      </div>
+    </div>
+    <div class="actions">
+      <button id="btn-replay" title="Replay animation (R)">↻ Replay</button>
+      <button id="btn-present" class="primary" title="Presentation mode (P)">▶ Present</button>
+    </div>
+  </header>
+
+  <section class="picker" id="picker">
+    <div class="picker-head">
+      <h2>Runs</h2>
+      <span class="hint">Click to compare. The first selected run is the baseline.</span>
+    </div>
+    <div class="chips" id="chips"></div>
+  </section>
+
+  <main id="main">
+    <div class="loading">Loading runs…</div>
+  </main>
+
+  <footer class="foot">
+    <span>PiBench · TinyServerLab</span>
+    <span class="keys"><kbd>P</kbd> present · <kbd>R</kbd> replay · <kbd>Esc</kbd> exit</span>
+  </footer>
+
+  <script src="metrics.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

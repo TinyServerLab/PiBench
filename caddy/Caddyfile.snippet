@@ -1,0 +1,14 @@
+# Add inside your existing apps.tinyserverlab.in site block, next to /inventory etc.
+# 'handle' keeps the /pibench prefix (the app expects it). Do NOT use handle_path here.
+handle /pibench* {
+	reverse_proxy pibench:3000
+}
+
+# Optional: keep the dashboard private (view-only from your LAN/Tailscale) by
+# protecting it with Cloudflare Access, or uncomment basic auth:
+# handle /pibench* {
+# 	basic_auth {
+# 		sathya <hash from: caddy hash-password>
+# 	}
+# 	reverse_proxy pibench:3000
+# }
