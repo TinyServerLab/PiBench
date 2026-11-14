@@ -14,9 +14,13 @@ services:
       - "127.0.0.1:8095:3000"
     networks:
       - shared
+      - shareddb
     mem_limit: 128m
 
 networks:
   shared:
     external: true
     name: ${SHARED_NETWORK:-shared-web}
+  shareddb:
+    external: true
+    name: ${SHARED_DB:-shared-db}
