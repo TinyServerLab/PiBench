@@ -118,7 +118,7 @@ GET    /pibench/healthz
 
 
 ### NVMe validation and configuration
-Step 1: Check the SSD is detected
+#### Step 1: Check the SSD is detected
 
 You have the official M.2 HAT+ Compact. It conforms to the Raspberry Pi HAT+ specification, which allows Raspberry Pi OS to automatically detect the HAT+ and any connected devices, so you don’t need to change config.txt or add PCIE_PROBE. 
 raspberrypi
@@ -133,7 +133,7 @@ sudo apt install -y nvme-cli && sudo nvme smart-log /dev/nvme0n1 | head -15   # 
 ```
 If nvme0n1 doesn’t show up, power off and reseat the ribbon cable at both ends. The contacts must face the correct side on each end.
 
-Step 2: Clone the SD card to the SSD
+#### Step 2: Clone the SD card to the SSD
 
 Use Jeff Geerling’s maintained fork of rpi-clone. It copies the system, grows the partition to fill the whole 512 GB, and updates the boot references (PARTUUIDs) in the copy’s fstab and cmdline.txt so they point at the SSD.
 
@@ -147,7 +147,7 @@ sudo systemctl start docker
 ```
 Stopping Docker takes your apps offline for the few minutes the clone runs.
 
-Step 3: Check the clone before switching
+#### Step 3: Check the clone before switching
 ```bash
 sudo mount /dev/nvme0n1p2 /mnt && sudo mount /dev/nvme0n1p1 /mnt/boot/firmware
 sudo blkid /dev/nvme0n1p1 /dev/nvme0n1p2          # note the PARTUUIDs
@@ -155,7 +155,7 @@ grep PARTUUID /mnt/etc/fstab /mnt/boot/firmware/cmdline.txt   # must match the n
 ls /mnt/var/lib/docker /mnt/home/$USER/pibench/runner/results  # data + baseline came across
 sudo umount /mnt/boot/firmware /mnt
 ```
-Step 4: Change the boot order
+#### Step 4: Change the boot order
 
 Pick one of these:
 
@@ -173,7 +173,7 @@ jeffgeerling
 
 Leave the SD card in for the first boot. If the NVMe boot fails, the Pi falls back to the SD card and you’re back where you started.
 
-Step 5: Reboot and confirm you’re running from the SSD
+#### Step 5: Reboot and confirm you’re running from the SSD
 ```bash
 sudo reboot
 findmnt /           # SOURCE must be /dev/nvme0n1p2  (not mmcblk0p2)
