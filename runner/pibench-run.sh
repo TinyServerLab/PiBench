@@ -391,7 +391,7 @@ THROTTLED_END=$(throttled)
 TS=$(date -u +%Y-%m-%dT%H:%M:%SZ)
 OUT_FILE="$OUT_DIR/$(date +%Y%m%d-%H%M%S)_${LABEL}.json"
 jq -Rn \
-  --arg label "$LABEL" --arg notes "$NOTES" --arg ts "$TS" --arg ver "$PIBENCH_VERSION" \
+  --arg run_label "$LABEL" --arg notes "$NOTES" --arg ts "$TS" --arg ver "$PIBENCH_VERSION" \
   --arg model "$MODEL" --arg os "$OS_NAME" --arg kernel "$(uname -r)" --arg host "$(hostname)" \
   --arg ram "$RAM_MB" --arg root_disk "/dev/$ROOT_DISK" --arg root_src "$ROOT_SRC" --arg fs "$ROOT_FS" \
   --arg dtype "$DISK_TYPE" --arg dmodel "$DISK_MODEL" --arg dsize "$DISK_SIZE" \
@@ -403,7 +403,7 @@ jq -Rn \
   def nz: if . == "" then null else . end;
   [inputs | split("\t") | {k: .[0], v: (.[1]|num), s: ((.[2] // "") | split(" ") | map(num) | map(select(. != null)))}] as $rows
   | {
-      label: $label, notes: ($notes|nz), captured_at: $ts, pibench_version: $ver,
+      "label": $run_label, "notes": ($notes|nz), "captured_at": $ts, "pibench_version": $ver,
       system: {
         model: $model, os: $os, kernel: $kernel, hostname: $host, ram_mb: ($ram|num),
         root_disk: $root_disk, root_source: $root_src, filesystem: $fs,
@@ -416,7 +416,13 @@ jq -Rn \
                   pgbench_time_s: ($pgt|num), duration_s: ($dur|num) },
       metrics: ($rows | map({key: .k, value: .v}) | from_entries),
       samples: ($rows | map({key: .k, value: .s}) | from_entries)
-    }' < "$MFILE" > "$OUT_FILE" || die "Failed to write JSON"
+    }' < "$MFILE" > "$OUT_FILE"
+if [[ $? -ne 0 || ! -s "$OUT_FILE" ]]; then
+  rm -f "$OUT_FILE"
+  RAW="$OUT_DIR/$(date +%Y%m%d-%H%M%S)_${LABEL}.metrics.tsv"
+  cp "$MFILE" "$RAW"; [[ -n "${SUDO_USER:-}" ]] && chown "$SUDO_USER": "$RAW" 2>/dev/null
+  die "Failed to build JSON ($(jq --version 2>/dev/null)). Raw results kept in $RAW"
+fi
 
 [[ -n "${SUDO_USER:-}" ]] && chown -R "$SUDO_USER": "$OUT_DIR" 2>/dev/null
 echo >&2

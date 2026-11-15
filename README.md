@@ -115,3 +115,73 @@ PATCH  /pibench/api/runs/:id        Bearer token, {"label": "...", "notes": "...
 DELETE /pibench/api/runs/:id        Bearer token
 GET    /pibench/healthz
 ```
+
+
+### NVMe validation and configuration
+Step 1: Check the SSD is detected
+
+You have the official M.2 HAT+ Compact. It conforms to the Raspberry Pi HAT+ specification, which allows Raspberry Pi OS to automatically detect the HAT+ and any connected devices, so you don’t need to change config.txt or add PCIE_PROBE. 
+raspberrypi
+
+
+```bash
+sudo apt update && sudo apt full-upgrade -y && sudo rpi-eeprom-update -a   # latest bootloader, then reboot if it updated
+lsblk                                   # expect: nvme0n1  476.9G
+dmesg | grep -i nvme | head             # no errors / timeouts
+cat /sys/class/nvme/nvme0/device/current_link_speed   # 5.0 GT/s = Gen 2 (default)
+sudo apt install -y nvme-cli && sudo nvme smart-log /dev/nvme0n1 | head -15   # critical_warning 0, sane temperature
+```
+If nvme0n1 doesn’t show up, power off and reseat the ribbon cable at both ends. The contacts must face the correct side on each end.
+
+Step 2: Clone the SD card to the SSD
+
+Use Jeff Geerling’s maintained fork of rpi-clone. It copies the system, grows the partition to fill the whole 512 GB, and updates the boot references (PARTUUIDs) in the copy’s fstab and cmdline.txt so they point at the SSD.
+
+```bash
+curl https://raw.githubusercontent.com/geerlingguy/rpi-clone/master/install | sudo bash
+
+# Stop anything writing to disk so Postgres is copied in a consistent state
+sudo systemctl stop docker docker.socket
+sudo rpi-clone nvme0n1        # answer the prompts; this ERASES the SSD (fine, it's new)
+sudo systemctl start docker
+```
+Stopping Docker takes your apps offline for the few minutes the clone runs.
+
+Step 3: Check the clone before switching
+```bash
+sudo mount /dev/nvme0n1p2 /mnt && sudo mount /dev/nvme0n1p1 /mnt/boot/firmware
+sudo blkid /dev/nvme0n1p1 /dev/nvme0n1p2          # note the PARTUUIDs
+grep PARTUUID /mnt/etc/fstab /mnt/boot/firmware/cmdline.txt   # must match the nvme ones above
+ls /mnt/var/lib/docker /mnt/home/$USER/pibench/runner/results  # data + baseline came across
+sudo umount /mnt/boot/firmware /mnt
+```
+Step 4: Change the boot order
+
+Pick one of these:
+
+```bash
+sudo raspi-config   # Advanced Options > Boot Order > NVMe/USB Boot
+```
+or edit the bootloader setting directly:
+
+```bash
+sudo rpi-eeprom-config --edit
+# set:  BOOT_ORDER=0xf416
+```
+The digits are read right to left. The 6 at the end is what tells the Pi to attempt NVMe boot first, then it tries the SD card (1), then USB (4). 
+jeffgeerling
+
+Leave the SD card in for the first boot. If the NVMe boot fails, the Pi falls back to the SD card and you’re back where you started.
+
+Step 5: Reboot and confirm you’re running from the SSD
+```bash
+sudo reboot
+findmnt /           # SOURCE must be /dev/nvme0n1p2  (not mmcblk0p2)
+docker ps           # all containers up
+curl -I https://apps.tinyserverlab.in/inventory/
+```
+Once it’s confirmed, run the “after” benchmark:
+
+```bash
+sudo ./pibench-run.sh --label nvme-gen2 --notes "M.2 HAT+ Compact, 512GB, Gen2"
+```
